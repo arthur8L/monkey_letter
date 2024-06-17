@@ -1,6 +1,6 @@
 <div align="center">
   <p>
-    <h1>Monkey Comm</h1>
+    <h1>Monkey Letter</h1>
   </p>
   <p>
     under construction
