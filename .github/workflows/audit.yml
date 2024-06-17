@@ -10,7 +10,7 @@ jobs:
     security_audit:
         runs-on: ubuntu-latest
         steps:
-            - uses: action/checkout@v3
+            - uses: actions/checkout@v3
             - uses: taiki-e/install-action@cargo-deny
             - name: Scan for Vunerabilities
               run: cargo deny check advisories
