@@ -1,5 +1,9 @@
+run:
+	cargo run
 watch:
 	cargo watch -X check
+check:
+	cargo check
 test:
 	cargo test
 coverage:
