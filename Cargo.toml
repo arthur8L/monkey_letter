@@ -19,4 +19,5 @@ rustflags = ["-C", "link-arg=-fuse-ld=lld"]
 [dependencies]
 actix-web = "4"
 reqwest = "0.12.5"
+serde = { version = "1", features = ["derive"] }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
