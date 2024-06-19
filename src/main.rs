@@ -1,8 +1,9 @@
 use std::net::TcpListener;
 
-use monkey_letter::run;
+use monkey_letter::{configuration, startup::run};
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let listener = TcpListener::bind("127.0.0.1:8000").expect("Failed binding to port 8000");
+    let config = configuration::get_configuration().expect("Failed to read configuration.");
+    let listener = TcpListener::bind(format!("127.0.0.1:{}", config.application_port))?;
     run(listener)?.await
 }

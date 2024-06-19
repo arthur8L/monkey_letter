@@ -14,6 +14,8 @@ format:
 	cargo fmt
 audit:
 	cargo audit
+db-init:
+	SKIP_DOCKER=true ./scripts/init_db.sh
 db-run:
 	SKIP_DOCKER=true ./scripts/init_db.sh
 db-cli:
