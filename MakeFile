@@ -14,3 +14,7 @@ format:
 	cargo fmt
 audit:
 	cargo audit
+db-run:
+	SKIP_DOCKER=true ./scripts/init_db.sh
+db-cli:
+	psql -d postgres -U postgres -h 127.0.0.1 -p 5432
