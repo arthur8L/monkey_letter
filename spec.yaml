@@ -1,0 +1,41 @@
+name: monkey_letter
+region: nyc1
+services:
+  - name: monkey_letter
+    dockerfile_path: Dockerfile
+    source_dir: .
+    github: 
+      branch: main
+      deploy_on_push: true
+      repo: arthurlee945/monkey_letter
+    health_check:
+      http_path: /health_check
+    http_port: 8000
+    # to keep billing low
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    env:
+      - key: APP_DATABASE_USERNAME
+        scrop: RUN_TIME
+        value: ${monkey_letter.USERNAME}
+      - key: APP_DATABASE_PASSWORD
+        scrop: RUN_TIME
+        value: ${monkey_letter.PASSWORD}
+      - key: APP_DATABASE_HOST
+        scrop: RUN_TIME
+        value: ${monkey_letter.HOSTNAME}
+      - key: APP_DATABASE_PORT
+        scrop: RUN_TIME
+        value: ${monkey_letter.PORT}
+      - key: APP_DATABASE__DATABASE_NAME
+        scrop: RUN_TIME
+        value: ${monkey_letter.DATABASE}
+databases:
+  - engine: PG
+    name: monkey_letter
+    # to keep billing low
+    num_nodes: 1
+    size: db-s-dev-database
+    version: "15"
