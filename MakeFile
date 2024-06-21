@@ -5,7 +5,7 @@ watch:
 check:
 	cargo check
 test:
-	cargo test
+	TEST_LOG=true cargo test health_check_works | bunyan
 coverage:
 	cargo tarpaulin --ignore-tests
 lint:
@@ -14,9 +14,13 @@ format:
 	cargo fmt
 audit:
 	cargo audit
+unused-dep:
+	cargo +nightly udeps
 db-init:
 	SKIP_DOCKER=true ./scripts/init_db.sh
 db-run:
 	SKIP_DOCKER=true ./scripts/init_db.sh
 db-cli:
 	psql -d postgres -U postgres -h 127.0.0.1 -p 5432
+docker-build:
+	docker build --tag monkey_letter --file Dockerfile .

@@ -1,8 +1,21 @@
-use std::net::TcpListener;
-
-use monkey_letter::configuration::{self, DatabaseSettings};
+use monkey_letter::{
+    configuration::{self, DatabaseSettings},
+    telemetry::{get_subscriber, init_subscriber},
+};
+use once_cell::sync::Lazy;
+use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
+use std::net::TcpListener;
 use uuid::Uuid;
+
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let (name, env_filter) = ("test", "debug");
+    if std::env::var("TEST_LOG").is_ok() {
+        init_subscriber(get_subscriber(name, env_filter, std::io::stdout));
+    } else {
+        init_subscriber(get_subscriber(name, env_filter, std::io::sink));
+    }
+});
 
 pub struct TestApp {
     pub address: String,
@@ -78,6 +91,7 @@ async fn subscribe_returns_400_for_bad_form_data() {
 }
 
 async fn spawn_app() -> TestApp {
+    Lazy::force(&TRACING);
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind to random port");
     let port = listener.local_addr().unwrap().port();
 
@@ -96,7 +110,7 @@ async fn spawn_app() -> TestApp {
 }
 //clean up is not implemented. probably better to do so.
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    let mut connection = PgConnection::connect(&config.connection_str_without_db())
+    let mut connection = PgConnection::connect(config.connection_str_without_db().expose_secret())
         .await
         .expect("Failed to connect to Postgres.");
     connection
@@ -104,7 +118,7 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
         .await
         .expect("Failed to create database.");
 
-    let connection_pool = PgPool::connect(&config.connection_str())
+    let connection_pool = PgPool::connect(config.connection_str().expose_secret())
         .await
         .expect("Failed to connect to Postgres.");
     sqlx::migrate!("./migrations")
