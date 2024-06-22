@@ -1,5 +1,6 @@
 use monkey_letter::{
     configuration::{self, DatabaseSettings},
+    email_client::EmailClient,
     telemetry::{get_subscriber, init_subscriber},
 };
 use once_cell::sync::Lazy;
@@ -125,8 +126,17 @@ async fn spawn_app() -> TestApp {
     let mut config = configuration::get_configuration().expect("Failed to load config");
     config.database.database_name = Uuid::new_v4().to_string();
     let db_pool = configure_database(&config.database).await;
-    let monkey_serv =
-        monkey_letter::startup::run(listener, db_pool.clone()).expect("Failed to bind address");
+    let sender_email = config.email_client.sender().expect("Invalid sender email.");
+    let timeout = config.email_client.timeout();
+    let email_client = EmailClient::new(
+        config.email_client.base_url,
+        sender_email,
+        config.email_client.authorization_token,
+        timeout,
+    );
+
+    let monkey_serv = monkey_letter::startup::run(listener, db_pool.clone(), email_client)
+        .expect("Failed to bind address");
 
     tokio::spawn(monkey_serv);
 

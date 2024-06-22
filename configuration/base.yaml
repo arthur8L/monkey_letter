@@ -6,3 +6,8 @@ database:
   username: "postgres"
   password: "password"
   database_name: "monkey_letter"
+email_client:
+  base_url: "localhost"
+  sender_email: "test@test.com"
+  authorization_token: "test-secret-token"
+  timeout_milliseconds: 10000
