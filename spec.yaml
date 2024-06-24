@@ -17,20 +17,23 @@ services:
     routes:
       - path: /
     env:
+      - key: APP_APPLICATION__BASE_URL
+        scope: RUN_TIME
+        value: ${APP_URL}
       - key: APP_DATABASE_USERNAME
-        scrop: RUN_TIME
+        scope: RUN_TIME
         value: ${monkey_letter.USERNAME}
       - key: APP_DATABASE_PASSWORD
-        scrop: RUN_TIME
+        scope: RUN_TIME
         value: ${monkey_letter.PASSWORD}
       - key: APP_DATABASE_HOST
-        scrop: RUN_TIME
+        scope: RUN_TIME
         value: ${monkey_letter.HOSTNAME}
       - key: APP_DATABASE_PORT
-        scrop: RUN_TIME
+        scope: RUN_TIME
         value: ${monkey_letter.PORT}
       - key: APP_DATABASE__DATABASE_NAME
-        scrop: RUN_TIME
+        scope: RUN_TIME
         value: ${monkey_letter.DATABASE}
 databases:
   - engine: PG

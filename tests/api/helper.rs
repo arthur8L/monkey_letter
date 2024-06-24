@@ -6,6 +6,7 @@ use monkey_letter::{
 use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
+use wiremock::MockServer;
 
 static TRACING: Lazy<()> = Lazy::new(|| {
     let (name, env_filter) = ("test", "debug");
@@ -17,8 +18,10 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 });
 
 pub struct TestApp {
+    pub port: u16,
     pub address: String,
     pub db_pool: PgPool,
+    pub email_server: MockServer,
 }
 
 impl TestApp {
@@ -35,11 +38,12 @@ impl TestApp {
 
 pub async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
-
+    let email_server = MockServer::start().await;
     let config = {
         let mut c = configuration::get_configuration().expect("Failed to load config");
         c.database.database_name = Uuid::new_v4().to_string();
         c.application.port = 0;
+        c.email_client.base_url = email_server.uri();
         c
     };
     configure_database(&config.database).await;
@@ -49,8 +53,10 @@ pub async fn spawn_app() -> TestApp {
     let port = application.port();
     tokio::spawn(application.run_until_stopped());
     TestApp {
+        port,
         address: format!("http://127.0.0.1:{}", port),
         db_pool: get_connection_pool(&config.database),
+        email_server,
     }
 }
 //clean up is not implemented. probably better to do so.
