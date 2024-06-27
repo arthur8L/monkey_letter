@@ -1,11 +1,13 @@
 run:
 	cargo run
 watch:
-	cargo watch -X check
+	cargo watch -x run
+watch-check:
+	cargo watch -x check
 check:
 	cargo check
 test:
-	TEST_LOG=true cargo test health_check_works | bunyan
+	TEST_LOG=true cargo test | bunyan
 coverage:
 	cargo tarpaulin --ignore-tests
 lint:

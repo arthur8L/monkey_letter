@@ -1,3 +1,4 @@
+use uuid::Uuid;
 use wiremock::{
     matchers::{any, method, path},
     Mock, ResponseTemplate,
@@ -133,4 +134,54 @@ async fn requests_missing_authroization_are_rejected() {
         r#"Basic realm="publish""#,
         response.headers()["WWW-Authenticate"]
     );
+}
+
+#[tokio::test]
+async fn non_existing_user_is_rejected() {
+    let app = spawn_app().await;
+    let (username, password) = (Uuid::new_v4().to_string(), Uuid::new_v4().to_string());
+
+    let response = reqwest::Client::new()
+        .post(format!("{}/newsletters", &app.address))
+        .basic_auth(username, Some(password))
+        .json(&serde_json::json!({
+            "title": "Newsletter title",
+            "content": {
+                "text": "Newsletter plain text",
+                "html": "<h1>Newsletter</h1> plain text"
+            }
+        }))
+        .send()
+        .await
+        .expect("Failed sending request");
+    assert_eq!(response.status().as_u16(), 401);
+    assert_eq!(
+        r#"Basic realm="publish""#,
+        response.headers()["WWW-Authenticate"]
+    )
+}
+
+#[tokio::test]
+async fn invalid_password_is_rejected() {
+    let app = spawn_app().await;
+    let (username, password) = (&app.test_user.username, Uuid::new_v4().to_string());
+    assert_ne!(app.test_user.password, password);
+    let response = reqwest::Client::new()
+        .post(format!("{}/newsletters", &app.address))
+        .basic_auth(username, Some(password))
+        .json(&serde_json::json!({
+            "title": "Newsletter title",
+            "content": {
+                "text": "Newsletter plain text",
+                "html": "<h1>Newsletter</h1> plain text"
+            }
+        }))
+        .send()
+        .await
+        .expect("Failed sending request");
+    assert_eq!(response.status().as_u16(), 401);
+    assert_eq!(
+        r#"Basic realm="publish""#,
+        response.headers()["WWW-Authenticate"]
+    )
 }
