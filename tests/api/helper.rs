@@ -1,10 +1,10 @@
+use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use monkey_letter::{
     configuration::{self, DatabaseSettings},
     startup::{get_connection_pool, Application},
     telemetry::{get_subscriber, init_subscriber},
 };
 use once_cell::sync::Lazy;
-use sha3::Digest;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use wiremock::MockServer;
@@ -123,6 +123,7 @@ pub struct TestUser {
     pub user_id: Uuid,
     pub username: String,
     pub password: String,
+    pub salt: String,
 }
 
 impl TestUser {
@@ -131,16 +132,21 @@ impl TestUser {
             user_id: Uuid::new_v4(),
             username: Uuid::new_v4().to_string(),
             password: Uuid::new_v4().to_string(),
+            salt: Uuid::new_v4().to_string(),
         }
     }
 
     async fn store(&self, pool: &PgPool) {
-        let password_hash = sha3::Sha3_256::digest(self.password.as_bytes());
+        let salt_str = SaltString::generate(&mut rand::thread_rng());
+        let password_hash = Argon2::default()
+            .hash_password(self.password.as_bytes(), &salt_str)
+            .unwrap()
+            .to_string();
         sqlx::query!(
             r#"INSERT INTO users (user_id, username, password_hash) VALUES ($1, $2, $3)"#,
             self.user_id,
             self.username,
-            format!("{:x}", password_hash)
+            password_hash
         )
         .execute(pool)
         .await
