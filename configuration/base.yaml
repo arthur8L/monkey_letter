@@ -1,6 +1,6 @@
 application:
   port: 8000
-  hmac_secret: "something-very-secret-here"
+  hmac_secret: "something-very-secret-here-also-typing-more-to-make-it-longer-thisissupersecret"
 database:
   host: "localhost"
   port: 5432

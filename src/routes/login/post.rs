@@ -3,6 +3,7 @@ use actix_web::{
     http::{header, StatusCode},
     web, HttpResponse, ResponseError,
 };
+use actix_web_flash_messages::FlashMessage;
 use secrecy::Secret;
 use sqlx::PgPool;
 
@@ -13,7 +14,7 @@ use crate::{
 
 #[derive(thiserror::Error)]
 pub enum LoginError {
-    #[error("Authentication Failed")]
+    #[error("Authentication failed")]
     AuthError(#[source] anyhow::Error),
     #[error("Something went wrong")]
     UnexpectedError(#[from] anyhow::Error),
@@ -60,6 +61,7 @@ pub async fn login(
                     LoginError::UnexpectedError(e.into())
                 }
             };
+            FlashMessage::error(e.to_string()).send();
             let response = HttpResponse::SeeOther()
                 .insert_header((header::LOCATION, "/login"))
                 .finish();
