@@ -5,6 +5,7 @@ use monkey_letter::{
     telemetry::{get_subscriber, init_subscriber},
 };
 use once_cell::sync::Lazy;
+use reqwest::redirect::Policy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use wiremock::MockServer;
@@ -68,6 +69,20 @@ impl TestApp {
             .send()
             .await
             .expect("Failed to execute request")
+    }
+    pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        reqwest::Client::builder()
+            .redirect(Policy::none())
+            .build()
+            .unwrap()
+            .post(format!("{}/login", self.address))
+            .form(body)
+            .send()
+            .await
+            .expect("Failed sending request")
     }
 }
 
@@ -156,4 +171,9 @@ impl TestUser {
         .await
         .expect("Failed to create test user.");
     }
+}
+
+pub fn assert_is_redirect_to(response: &reqwest::Response, location: &str) {
+    assert_eq!(response.status().as_u16(), 303);
+    assert_eq!(response.headers().get("Location").unwrap(), location);
 }
