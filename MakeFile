@@ -24,6 +24,10 @@ script-redis:
 	./scripts/init_redis.sh
 db-cli:
 	psql -d postgres -U postgres -h 127.0.0.1 -p 5432
+db-add:
+	sqlx migrate add $(name)
+db-migrate:
+	sqlx migrate run
 docker-build:
 	docker build --tag monkey_letter --file Dockerfile .
 docker-run:
