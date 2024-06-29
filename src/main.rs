@@ -5,7 +5,7 @@ use monkey_letter::{
 };
 
 #[tokio::main]
-async fn main() -> Result<(), std::io::Error> {
+async fn main() -> anyhow::Result<()> {
     // Telemetry initializaer
     init_subscriber(get_subscriber("monkey_letter", "info", std::io::stdout));
     let config = configuration::get_configuration().expect("Failed to read configuration.");
