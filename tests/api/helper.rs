@@ -127,6 +127,13 @@ impl TestApp {
             .await
             .expect("Failed to send request")
     }
+    pub async fn post_logout(&self) -> reqwest::Response {
+        self.api_client
+            .post(&format!("{}/logout", self.address))
+            .send()
+            .await
+            .expect("Failed to execute request")
+    }
 }
 
 pub async fn spawn_app() -> TestApp {

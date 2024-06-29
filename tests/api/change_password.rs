@@ -1,4 +1,3 @@
-use actix_web::rt::spawn;
 use uuid::Uuid;
 
 use crate::helper::{assert_is_redirect_to, spawn_app};
