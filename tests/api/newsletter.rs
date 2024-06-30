@@ -24,10 +24,11 @@ async fn newsletters_are_not_delivered_to_unconfirmed_subscribers() {
     let newsletter_req_body = serde_json::json!({
         "title": "Newsletter Title",
         "text_content": "Newsletter in plain text",
-        "html_content": "<h1>Newsletter</h1> as HTML"
+        "html_content": "<h1>Newsletter</h1> as HTML",
+        "idempotency_key": uuid::Uuid::new_v4().to_string()
     });
 
-    let response = app.post_newsletter(newsletter_req_body).await;
+    let response = app.post_newsletter(&newsletter_req_body).await;
     assert_is_redirect_to(&response, "/admin/newsletters")
 }
 
@@ -50,10 +51,11 @@ async fn newsletters_are_delivered_to_confirmed_subscriber() {
     let newsletter_req_body = serde_json::json!({
         "title": "Newsletter Title",
         "text_content": "Newsletter in plain text",
-        "html_content": "<h1>Newsletter</h1> as HTML"
+        "html_content": "<h1>Newsletter</h1> as HTML",
+        "idempotency_key": uuid::Uuid::new_v4().to_string()
     });
 
-    let response = app.post_newsletter(newsletter_req_body).await;
+    let response = app.post_newsletter(&newsletter_req_body).await;
 
     assert_is_redirect_to(&response, "/admin/newsletters")
 }
@@ -83,7 +85,7 @@ async fn newsletters_returns_400_for_invalid_body() {
     ];
 
     for (invalid_body, msg) in test_case {
-        let res = app.post_newsletter(invalid_body).await;
+        let res = app.post_newsletter(&invalid_body).await;
 
         assert_eq!(
             res.status().as_u16(),
@@ -91,6 +93,40 @@ async fn newsletters_returns_400_for_invalid_body() {
             "The API did not fail with status 400 when payload was {msg}"
         );
     }
+}
+
+#[tokio::test]
+async fn newsletter_creation_is_idempotent() {
+    let app = spawn_app().await;
+    create_confirmed_subscriber(&app).await;
+    app.test_user.login(&app).await;
+
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&app.email_server)
+        .await;
+    let newsletter_req_body = serde_json::json!({
+        "title": "Newsletter title",
+        "html_content": "<h1>Newsletter  body</h1>",
+        "text_content": "Newsletter body",
+        "idempotency_key": uuid::Uuid::new_v4().to_string()
+    });
+    // submit newsletter form
+    let response = app.post_newsletter(&newsletter_req_body).await;
+    assert_is_redirect_to(&response, "/admin/newsletters");
+
+    // follow request
+    let html_page = app.post_newsletter_html().await;
+    assert!(html_page.contains("The newsletter issue has been published!"));
+
+    // submit newsletter again
+    let response = app.post_newsletter(&newsletter_req_body).await;
+    assert_is_redirect_to(&response, "/admin/newsletters");
+
+    let html_page = app.post_newsletter_html().await;
+    assert!(html_page.contains("The newsletter issue has been published!"));
 }
 
 async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {

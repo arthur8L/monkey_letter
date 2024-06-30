@@ -6,7 +6,8 @@ use crate::{
     authentication::UserId,
     domain::SubscriberEmail,
     email_client::EmailClient,
-    utils::{e500, see_other},
+    idempotency::{get_saved_response, save_response, IdempotencyKey},
+    utils::{e400, e500, see_other},
 };
 
 #[derive(serde::Deserialize)]
@@ -14,6 +15,7 @@ pub struct FormData {
     title: String,
     text_content: String,
     html_content: String,
+    idempotency_key: String,
 }
 
 #[tracing::instrument(name = "Publish a newsletter issue", skip(form, user_id, pool, email_client) fields(user_id=%*user_id))]
@@ -23,17 +25,26 @@ pub async fn send_newsletter(
     pool: web::Data<PgPool>,
     email_client: web::Data<EmailClient>,
 ) -> Result<HttpResponse, actix_web::Error> {
+    let FormData {
+        title,
+        text_content,
+        html_content,
+        idempotency_key,
+    } = form.0;
+    let idempotency_key: IdempotencyKey = idempotency_key.try_into().map_err(e400)?;
+    if let Some(saved_response) = get_saved_response(&pool, &idempotency_key, **user_id)
+        .await
+        .map_err(e500)?
+    {
+        FlashMessage::info("The newsletter issue has been published!").send();
+        return Ok(saved_response);
+    }
     let subscribers = get_confirmed_subscriber(&pool).await.map_err(e500)?;
     for subscriber in subscribers {
         match subscriber {
             Ok(subscriber) => {
                 email_client
-                    .send_email(
-                        &subscriber.email,
-                        &form.title,
-                        &form.html_content,
-                        &form.text_content,
-                    )
+                    .send_email(&subscriber.email, &title, &html_content, &text_content)
                     .await
                     .map_err(e500)?;
             }
@@ -42,8 +53,12 @@ pub async fn send_newsletter(
             }
         }
     }
-    FlashMessage::info("The newletter issue has been published!").send();
-    Ok(see_other("/admin/newsletters"))
+    FlashMessage::info("The newsletter issue has been published!").send();
+    let response = see_other("/admin/newsletters");
+    let response = save_response(&pool, response, **user_id, &idempotency_key)
+        .await
+        .map_err(e500)?;
+    Ok(response)
 }
 
 struct ConfirmedSubscriber {

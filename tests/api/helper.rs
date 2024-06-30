@@ -62,13 +62,23 @@ impl TestApp {
         let plain_text = get_link(body["TextBody"].as_str().unwrap());
         ConfirmationLinks { html, plain_text }
     }
-    pub async fn post_newsletter(&self, body: serde_json::Value) -> reqwest::Response {
+    pub async fn post_newsletter(&self, body: &serde_json::Value) -> reqwest::Response {
         self.api_client
             .post(format!("{}/admin/newsletters", self.address))
-            .form(&body)
+            .form(body)
             .send()
             .await
             .expect("Failed to execute request")
+    }
+    pub async fn post_newsletter_html(&self) -> String {
+        self.api_client
+            .get(format!("{}/admin/newsletters", self.address))
+            .send()
+            .await
+            .expect("Failed to execute request")
+            .text()
+            .await
+            .expect("Failed to get text")
     }
     pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
     where
@@ -227,6 +237,17 @@ impl TestUser {
         .execute(pool)
         .await
         .expect("Failed to create test user.");
+    }
+    pub async fn login(&self, app: &TestApp) -> reqwest::Response {
+        app.api_client
+            .post(format!("{}/login", app.address))
+            .form(&serde_json::json!({
+                "username": &self.username,
+                "password": &self.password,
+            }))
+            .send()
+            .await
+            .expect("Failed sending login request")
     }
 }
 
