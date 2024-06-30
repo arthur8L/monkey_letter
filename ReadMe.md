@@ -3,7 +3,7 @@
     <h1>Monkey Letter</h1>
   </p>
   <p>
-    under construction
+    Newsletter Sign Up API   
   </p>
   <p>
     <em>Leave a Like! or check out my portfolio <a href="https://arthurlee.bio">arthurlee.bio</a></em>
@@ -17,7 +17,3 @@
   \_| ||        \_|  |        \_|  |        \_| ||   |  One Bored Monkey
 
 ```
-
-## Overview
-
-This project is under construction
