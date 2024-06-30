@@ -103,3 +103,47 @@ async fn password_must_be_not_too_short() {
     let html_page = app.get_change_password_html().await;
     assert!(html_page.contains("<p><i>New password should be minimum 12 characters.</i></p>"));
 }
+
+#[tokio::test]
+async fn changing_password_works() {
+    let app = spawn_app().await;
+    let new_password = Uuid::new_v4().to_string();
+
+    // Login
+    let login_body = serde_json::json!({
+        "username": &app.test_user.username,
+        "password": &app.test_user.password
+    });
+    let response = app.post_login(&login_body).await;
+    assert_is_redirect_to(&response, "/admin/dashboard");
+
+    // Change Password
+    let response = app
+        .post_change_password(&serde_json::json!({
+            "current_password": &app.test_user.password,
+            "new_password": &new_password,
+            "confirm_new_password": &new_password
+        }))
+        .await;
+    assert_is_redirect_to(&response, "/admin/password");
+
+    // Follow the redirect
+    let html_page = app.get_change_password_html().await;
+    assert!(html_page.contains("Your password has been changed."));
+
+    // Logout
+    let response = app.post_logout().await;
+    assert_is_redirect_to(&response, "/login");
+
+    // Logout after html
+    let html_page = app.get_login_html().await;
+    assert!(html_page.contains("You have successfully logged out."));
+
+    // Login again with new password
+    let login_body = serde_json::json!({
+        "username": &app.test_user.username,
+        "password": &new_password
+    });
+    let response = app.post_login(&login_body).await;
+    assert_is_redirect_to(&response, "/admin/dashboard");
+}
